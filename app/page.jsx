@@ -40,7 +40,7 @@ const BUILDING_TYPE_LABELS = {
   "multifamily_5_8": "Multi-Family (5–8 Units)",
 };
 
-function rateSubmission(input: any) {
+function rateSubmission(input) {
   const tcv = parseFloat(input.totalContractValue) || 0;
   const baseRate = BASE_RATES[input.buildingType];
   const basePremium = (tcv / 1000) * baseRate;
