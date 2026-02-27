@@ -9,7 +9,7 @@ function generateQuoteNumber() {
   return `QCL-TN-${ts}-${rand}`;
 }
 
-function generatePolicyNumber(quoteNumber: string) {
+function generatePolicyNumber(quoteNumber) {
   return quoteNumber.replace("QCL-TN-", "POL-TN-");
 }
 
