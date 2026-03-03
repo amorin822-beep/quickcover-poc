@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 
 // ─── RATER ENGINE ────────────────────────────────────────────────────────────
@@ -33,9 +35,9 @@ const TERM_FACTORS = {
 };
 
 const BUILDING_TYPE_LABELS = {
-  "single_family":   "Single Family Residential",
-  "multifamily_2_4": "Multi-Family (2–4 Units)",
-  "multifamily_5_8": "Multi-Family (5–8 Units)",
+  "single_family":   "Single Family Vacant — Under Construction",
+  "multifamily_2_4": "Multi-Family Vacant (2–4 Units) — Under Construction",
+  "multifamily_5_8": "Multi-Family Vacant (5–8 Units) — Under Construction",
 };
 
 function rateSubmission(input) {
@@ -1117,9 +1119,9 @@ function ApplicationStep({ onNext }) {
   }
 
   const buildingTypes = [
-    { id: "single_family", label: "Single Family Residential", sub: "Vacant, New construction, detached" },
-    { id: "multifamily_2_4", label: "Multi-Family (2–4 Units)", sub: "Vacant, Duplex, triplex, quadplex" },
-    { id: "multifamily_5_8", label: "Multi-Family (5–8 Units)", sub: "Vacant, Small apartment construction" },
+    { id: "single_family", label: "Single Family Vacant", sub: "Vacant, under construction — unoccupied" },
+    { id: "multifamily_2_4", label: "Multi-Family Vacant (2–4 Units)", sub: "Vacant, under construction — unoccupied" },
+    { id: "multifamily_5_8", label: "Multi-Family Vacant (5–8 Units)", sub: "Vacant, under construction — unoccupied" },
   ];
 
   const terms = [
@@ -1138,7 +1140,7 @@ function ApplicationStep({ onNext }) {
     <div>
       <div className="section-heading">
         <h1>New Submission</h1>
-        <p>Residential Builders Risk Liability — Tennessee</p>
+        <p>Vacant Residential Builders Risk Liability — Tennessee</p>
       </div>
 
       {/* Insured Information */}
@@ -1803,7 +1805,7 @@ function BindStep({ result, onConfirm, onBack }) {
           </div>
           <div className="summary-item">
             <div className="summary-item-label">Coverage</div>
-            <div className="summary-item-value">Residential Builders Risk GL</div>
+            <div className="summary-item-value">Vacant Residential Builders Risk GL</div>
           </div>
           <div className="summary-item">
             <div className="summary-item-label">Effective Date</div>
@@ -1875,7 +1877,7 @@ function PolicyStep({ result }) {
           </div>
           <div className="dec-doc-type">
             <div className="dec-doc-title">Declarations Page</div>
-            <div className="dec-doc-sub">Residential Builders Risk GL</div>
+            <div className="dec-doc-sub">Vacant Residential Builders Risk GL</div>
           </div>
         </div>
 
