@@ -1511,7 +1511,7 @@ function UnderwritingStep({ onNext, onBack }) {
       id: "vacant",
       text: "Are all Dwellings Totally Vacant?",
       hint: "Select Yes if all structures on the property are completely unoccupied.",
-      ineligibleIf: "yes",
+      ineligibleIf: "no",
     },
     {
       id: "ownsProperty",
