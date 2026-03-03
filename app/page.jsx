@@ -1,5 +1,3 @@
-"use client";
-// @ts-nocheck
 import { useState, useEffect } from "react";
 
 // ─── RATER ENGINE ────────────────────────────────────────────────────────────
@@ -892,6 +890,109 @@ const styles = `
     line-height: 1.6;
   }
 
+  /* UW QUESTIONS */
+  .uw-question {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 14px;
+    background: var(--cream);
+    transition: border-color 0.2s;
+  }
+
+  .uw-question.answered { border-color: var(--navy); background: white; }
+  .uw-question.flagged  { border-color: #c0392b; background: #fff5f5; }
+
+  .uw-question-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--navy);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .uw-toggle {
+    display: flex;
+    gap: 10px;
+  }
+
+  .uw-btn {
+    height: 40px;
+    width: 80px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    color: var(--text-muted);
+  }
+
+  .uw-btn.yes.active { background: var(--navy); border-color: var(--navy); color: white; }
+  .uw-btn.no.active  { background: #c0392b; border-color: #c0392b; color: white; }
+
+  /* MODAL OVERLAY */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(13,31,60,0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-box {
+    background: white;
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 460px;
+    width: 100%;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.25s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.92) translateY(16px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-icon {
+    width: 72px;
+    height: 72px;
+    background: #fff0f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 32px;
+  }
+
+  .modal-box h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+
+  .modal-box p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  .modal-box .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
   /* NOTICE */
   .notice {
     background: #fff8e6;
@@ -951,7 +1052,7 @@ function Header() {
 }
 
 function ProgressBar({ step }) {
-  const steps = ["Application", "Rate & Quote", "Bind", "Policy Issued"];
+  const steps = ["Application", "Rate & Quote", "Underwriting", "Bind", "Policy Issued"];
   return (
     <div className="progress-bar">
       {steps.map((s, i) => (
@@ -1016,9 +1117,9 @@ function ApplicationStep({ onNext }) {
   }
 
   const buildingTypes = [
-    { id: "single_family", label: "Single Family Residential", sub: "New construction, detached" },
-    { id: "multifamily_2_4", label: "Multi-Family (2–4 Units)", sub: "Duplex, triplex, quadplex" },
-    { id: "multifamily_5_8", label: "Multi-Family (5–8 Units)", sub: "Small apartment construction" },
+    { id: "single_family", label: "Single Family Residential", sub: "Vacant, New construction, detached" },
+    { id: "multifamily_2_4", label: "Multi-Family (2–4 Units)", sub: "Vacant, Duplex, triplex, quadplex" },
+    { id: "multifamily_5_8", label: "Multi-Family (5–8 Units)", sub: "Vacant, Small apartment construction" },
   ];
 
   const terms = [
@@ -1344,14 +1445,336 @@ function QuoteStep({ submission, onBind, onBack }) {
       <div className="btn-row">
         <button className="btn-outline" onClick={onBack}>← Revise Application</button>
         <button className="btn-primary btn-gold" onClick={() => onBind(result)}>
-          Bind Coverage →
+          Underwriting Review →
         </button>
       </div>
     </div>
   );
 }
 
-// ─── STEP 3: BIND CONFIRMATION ────────────────────────────────────────────────
+// ─── STEP 3: UNDERWRITING ────────────────────────────────────────────────────
+const UW_QUESTIONS = [
+  {
+    id: "vacant",
+    text: "Are all dwellings totally vacant?",
+    knockoutIf: "yes",
+    knockoutMsg: "This submission is not eligible. Coverage cannot be bound on totally vacant dwellings under construction.",
+  },
+  {
+    id: "ownsProperty",
+    text: "Does the insured own the property under construction?",
+    knockoutIf: "no",
+    knockoutMsg: "This submission is not eligible. The insured must own the property under construction to qualify for coverage.",
+  },
+  {
+    id: "priorLosses",
+    text: "Has the applicant incurred any losses on the property in the last 3 years?",
+    knockoutIf: "yes",
+    knockoutMsg: "This submission is not eligible. Applicants with losses on the property in the past 3 years do not qualify for coverage.",
+  },
+  {
+    id: "foreclosure",
+    text: "Has the applicant had a foreclosure, repossession, or bankruptcy during the past 5 years?",
+    knockoutIf: "yes",
+    knockoutMsg: "This submission is not eligible. Applicants with a foreclosure, repossession, or bankruptcy in the past 5 years do not qualify.",
+  },
+  {
+    id: "fraud",
+    text: "During the past 5 years, has the applicant been indicted for or convicted of any degree of the crime of fraud, bribery, arson, or any other arson-related crime?",
+    knockoutIf: "yes",
+    knockoutMsg: "This submission is not eligible. Applicants with a criminal history involving fraud, bribery, or arson do not qualify for coverage.",
+  },
+  {
+    id: "nuisance",
+    text: "Are there any nuisance hazards on the property (swing sets, vehicles, debris, trampoline, fuel tanks, underground tanks, etc.)?",
+    knockoutIf: "yes",
+    knockoutMsg: "This submission is not eligible. Properties with nuisance hazards present cannot be bound until hazards are removed and confirmed.",
+  },
+];
+
+function UnderwritingStep({ result, onNext, onBack }) {
+  const [answers, setAnswers] = useState({});
+  const [modal, setModal] = useState(null);
+  const [errors, setErrors] = useState(false);
+
+  function answer(id, val) {
+    setAnswers(a => ({ ...a, [id]: val }));
+    setErrors(false);
+
+    const q = UW_QUESTIONS.find(q => q.id === id);
+    if (val === q.knockoutIf) {
+      setModal(q.knockoutMsg);
+    }
+  }
+
+  function handleContinue() {
+    const allAnswered = UW_QUESTIONS.every(q => answers[q.id] !== undefined);
+    if (!allAnswered) { setErrors(true); return; }
+    onNext();
+  }
+
+  function getQuestionState(q) {
+    const ans = answers[q.id];
+    if (ans === undefined) return "";
+    if (ans === q.knockoutIf) return "flagged";
+    return "answered";
+  }
+
+  return (
+    <div>
+      {modal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <div className="modal-icon">🚫</div>
+            <h2>Not Eligible</h2>
+            <p>{modal}</p>
+            <button className="btn-primary" style={{ background: "var(--navy)", width: "100%", justifyContent: "center" }}
+              onClick={() => { setModal(null); }}>
+              Review Answers
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="section-heading">
+        <h1>Underwriting Review</h1>
+        <p>All questions must be answered before binding coverage. Certain responses will render the submission ineligible.</p>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Eligibility Questions — Tennessee Residential Builders Risk GL</div>
+
+        {errors && (
+          <div className="notice" style={{ background: "#fff0f0", borderColor: "#c0392b", color: "#7a0000", marginBottom: 20 }}>
+            <span className="notice-icon">⚠</span>
+            <span>Please answer all questions before continuing.</span>
+          </div>
+        )}
+
+        {UW_QUESTIONS.map((q, i) => (
+          <div key={q.id} className={`uw-question ${getQuestionState(q)}`}>
+            <div className="uw-question-text">
+              <span style={{ fontWeight: 700, color: "var(--text-muted)", marginRight: 8, fontSize: 12 }}>{i + 1}.</span>
+              {q.text}
+            </div>
+            <div className="uw-toggle">
+              <button
+                className={`uw-btn yes ${answers[q.id] === "yes" ? "active" : ""}`}
+                onClick={() => answer(q.id, "yes")}>
+                Yes
+              </button>
+              <button
+                className={`uw-btn no ${answers[q.id] === "no" ? "active" : ""}`}
+                onClick={() => answer(q.id, "no")}>
+                No
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="btn-row">
+        <button className="btn-outline" onClick={onBack}>← Back to Quote</button>
+        <button className="btn-primary btn-gold" onClick={handleContinue}>
+          Proceed to Bind →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── STEP 3: UNDERWRITING ────────────────────────────────────────────────────
+function UnderwritingStep({ onNext, onBack }) {
+  const [answers, setAnswers] = useState({
+    vacant: null,
+    ownsProperty: null,
+    priorLosses: null,
+    foreclosure: null,
+    fraud: null,
+    nuisance: null,
+  });
+  const [ineligibleReason, setIneligibleReason] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  const questions = [
+    {
+      id: "vacant",
+      text: "Are all Dwellings Totally Vacant?",
+      hint: "Select Yes if all structures on the property are completely unoccupied.",
+      ineligibleIf: "yes",
+    },
+    {
+      id: "ownsProperty",
+      text: "Does the insured own the property under construction?",
+      hint: "The named insured must hold title to the property.",
+      ineligibleIf: "no",
+    },
+    {
+      id: "priorLosses",
+      text: "Has the Applicant incurred any losses on the property in the last 3 years?",
+      hint: "Include any insurance claims, fire, water, or liability losses.",
+      ineligibleIf: "yes",
+    },
+    {
+      id: "foreclosure",
+      text: "Has the applicant had a foreclosure, repossession, or bankruptcy during the past 5 years?",
+      hint: "Include any personal or business filings.",
+      ineligibleIf: "yes",
+    },
+    {
+      id: "fraud",
+      text: "During the past 5 years, has the applicant been indicted for or convicted of any degree of the crime of fraud, bribery, arson, or any other arson-related crime?",
+      hint: "This includes all principals, partners, and officers of the applicant.",
+      ineligibleIf: "yes",
+    },
+    {
+      id: "nuisance",
+      text: "Are there any nuisance hazards on the property?",
+      hint: "Examples: swing sets, vehicles, debris, trampolines, fuel tanks, underground tanks, etc.",
+      ineligibleIf: "yes",
+    },
+  ];
+
+  function setAnswer(id, val) {
+    setAnswers(a => ({ ...a, [id]: val }));
+    setErrors(e => ({ ...e, [id]: null }));
+  }
+
+  function handleSubmit() {
+    const newErrors = {};
+    questions.forEach(q => {
+      if (answers[q.id] === null) newErrors[q.id] = "Please answer this question";
+    });
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    for (const q of questions) {
+      if (answers[q.id] === q.ineligibleIf) {
+        setIneligibleReason(q.text);
+        return;
+      }
+    }
+    onNext(answers);
+  }
+
+  return (
+    <div>
+      <div className="section-heading">
+        <h1>Underwriting Review</h1>
+        <p>Please answer all eligibility questions honestly and completely.</p>
+      </div>
+
+      {ineligibleReason && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(13,31,60,0.75)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1000, padding: 24,
+        }}>
+          <div style={{
+            background: "white", borderRadius: 20, padding: 40,
+            maxWidth: 480, width: "100%", textAlign: "center",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.3)",
+          }}>
+            <div style={{
+              width: 68, height: 68, borderRadius: "50%",
+              background: "#fef2f2", border: "2px solid #fca5a5",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 20px", fontSize: 30, color: "#dc2626",
+            }}>✕</div>
+            <h2 style={{
+              fontFamily: "'DM Serif Display', serif", fontSize: 24,
+              color: "var(--navy)", marginBottom: 12,
+            }}>Not Eligible for Coverage</h2>
+            <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
+              Based on your response to the following question, this submission does not meet our current underwriting guidelines:
+            </p>
+            <div style={{
+              background: "#fef2f2", border: "1px solid #fca5a5",
+              borderRadius: 10, padding: "14px 18px", margin: "0 0 20px",
+              fontSize: 14, color: "#991b1b", fontStyle: "italic", lineHeight: 1.6,
+            }}>
+              "{ineligibleReason}"
+            </div>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 28, lineHeight: 1.6 }}>
+              If you believe this is an error or have additional information to provide, please contact an underwriter directly.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button className="btn-outline" onClick={() => setIneligibleReason(null)}>
+                ← Review Answers
+              </button>
+              <button className="btn-primary" onClick={() => window.location.reload()}>
+                Start New Quote
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="card-title">Eligibility Questions</div>
+        <div className="notice">
+          <span className="notice-icon">ℹ</span>
+          <span>All questions must be answered truthfully. Misrepresentation may result in policy rescission and denial of claims.</span>
+        </div>
+
+        {questions.map((q, i) => (
+          <div key={q.id} style={{
+            padding: "22px 0",
+            borderBottom: i < questions.length - 1 ? "1px solid var(--cream-dark)" : "none",
+          }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%",
+                background: answers[q.id] !== null ? "var(--navy)" : "var(--cream-dark)",
+                color: answers[q.id] !== null ? "white" : "var(--text-muted)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: 700, flexShrink: 0, marginTop: 3,
+                transition: "all 0.2s",
+              }}>{i + 1}</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "var(--navy)", marginBottom: 4, lineHeight: 1.5 }}>
+                  {q.text}
+                </p>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14, lineHeight: 1.5 }}>
+                  {q.hint}
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {["yes", "no"].map(val => (
+                    <button key={val}
+                      onClick={() => setAnswer(q.id, val)}
+                      style={{
+                        height: 42, width: 90,
+                        border: answers[q.id] === val ? "2px solid var(--navy)" : "1.5px solid var(--border)",
+                        borderRadius: 10,
+                        background: answers[q.id] === val ? "var(--navy)" : "var(--cream)",
+                        color: answers[q.id] === val ? "white" : "var(--text-muted)",
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 14, fontWeight: 600,
+                        cursor: "pointer", transition: "all 0.15s",
+                      }}>
+                      {val === "yes" ? "Yes" : "No"}
+                    </button>
+                  ))}
+                </div>
+                {errors[q.id] && <span className="error-text">{errors[q.id]}</span>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="btn-row">
+        <button className="btn-outline" onClick={onBack}>← Back to Quote</button>
+        <button className="btn-primary btn-gold" onClick={handleSubmit}>
+          Submit for Review →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── STEP 4: BIND CONFIRMATION ────────────────────────────────────────────────
 function BindStep({ result, onConfirm, onBack }) {
   const { worksheet: ws, policyPeriod, input } = result;
   const insuredName = input.insuredType === "person"
@@ -1656,13 +2079,20 @@ export default function App() {
             />
           )}
           {step === 2 && (
-            <BindStep
+            <UnderwritingStep
               result={quoteResult}
-              onConfirm={() => setStep(3)}
+              onNext={() => setStep(3)}
               onBack={() => setStep(1)}
             />
           )}
           {step === 3 && (
+            <BindStep
+              result={quoteResult}
+              onConfirm={() => setStep(4)}
+              onBack={() => setStep(2)}
+            />
+          )}
+          {step === 4 && (
             <PolicyStep result={quoteResult} />
           )}
         </div>
